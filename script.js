@@ -1,52 +1,68 @@
-const btnOldImg = document.querySelector('.old-img');
-const btnLastImg = document.querySelector('.last-img');
-const container = document.querySelector('.container');
-const currentImage = document.querySelector('.current-image');
+const photoGalleryTable = document.querySelector('.photo-gallery__list');
+const quantity = document.querySelector('#quantity');
 
-let index1 = 1;
+let number = 1;
 
-btnLastImg.addEventListener("click", () => {
-   if (index1 === container.children.length) {
-      index1 = 1;
-   } else {
-      index1++;
-   }
-   showImg(index1 - 1);
-})
+const acessKeyIm = 'XU4i04bnwsY7UVw8yyliC9UL7xQobReCJrJygTkG5Qc';
+quantity.addEventListener("change", () => {
+   loadMorePhotos(quantity.value);
+});
 
-btnOldImg.addEventListener("click", () => {
-   if (index1 === 1) {
-      index1 = container.children.length;
-   } else {
-      index1--;
-   }
-   showImg(index1 - 1);
-})
-
-const showImg = (indexImg) => {
-   container.children.item(indexImg).style.display = "block";
-   for (let i = 0; i < container.children.length; i++) {
-      if (i !== indexImg) {
-         container.children.item(i).style.display = "none";
-      }
-   }
-   showActivItem(currentImage.children.item(indexImg));
-}
-
-currentImage.addEventListener("click", (element) => {
-   index1 = Number.parseInt(element.target.textContent);
-   showImg(index1 - 1);
-   showActivItem(element.target);
-})
-
-const showActivItem = (element) => {
-   if (element.classList[0] !== "current-image") {
-      element.classList.add("active");
-      if (element.classList.contains('active')) {
-         document.querySelectorAll('.active').forEach(item => item.classList.remove('active'));
-         element.classList.add('active');
-      }
+async function fetchPhotos (numberPage, quantity) {
+   try {
+      const response = await fetch(`https://api.unsplash.com/photos?page=${numberPage}&per_page=${quantity}&client_id=${acessKeyIm}&lang=ru`);
+      const photos = await response.json();
+      return photos;
+   } catch (error) {
+      console.error('Ошибка при загрузке фотографий:', error);
+      return [];
    }
 }
 
-showActivItem(currentImage.children.item(index1 - 1));
+async function loadMorePhotos (quantityPhoto) {
+   fetchPhotos(number, quantityPhoto).then((photos) => {
+      photos.forEach(photo => {
+         photoGalleryTable.innerHTML += `
+         <div class="photo-gallery__item">
+            <div class="photo-gallery__item-wrap">
+               <img class="photo-gallery__item-img" src="${photo.urls.small}">
+            </div>
+            <div class="photo-gallery__item-info">
+               <p class="photo-gallery__name-photographer">Фотограф: ${photo.user.name}</p>
+               <div class="like">
+                  <i class="fa fa-thumbs-up"></i>
+                  <p class="count">0</p>
+                  <i onclick="countDown(this)" class="fa fa-thumbs-down"></i>
+               </div>
+            </div>
+         </div>
+         `
+      });
+   });
+   number++;
+}
+
+function countUp (element) {
+   let btnLike = element.parentElement.querySelector(".count");
+   console.log(btnLike);
+   let count = Number.parseInt(btnLike.textContent);
+   
+   count++;
+   btnLike.textContent = count;
+}
+
+function countDown (element) {
+   let btnLike = element.parentElement.querySelector(".count");
+   let count = Number.parseInt(btnLike.textContent);
+   count--;
+   btnLike.textContent = count;
+}
+
+window.addEventListener('scroll', () => {
+   if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+      loadMorePhotos(quantity.value);
+   }
+});
+
+// Загрузка первой партии фотографий при загрузке страницы
+loadMorePhotos(quantity.value);
